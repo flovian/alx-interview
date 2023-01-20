@@ -1,23 +1,46 @@
 #!/usr/bin/python3
-'''A script that generates random HTTP request logs.
-'''
-import random
+
+""" script that reads stdin line by line and computes metrics """
+
 import sys
-import datetime
-from time import sleep
 
 
-for i in range(10000):
-    sleep(random.random())
-    sys.stdout.write("{:d}.{:d}.{:d}.{:d} - [{}] \"GET {} {}\" {} {}\n".format(
-        random.randint(1, 255),
-        random.randint(1, 255),
-        random.randint(1, 255),
-        random.randint(1, 255),
-        datetime.datetime.now(),
-        '/projects/1216',
-        'HTTP/1.1',
-        random.choice([200, 301, 400, 401, 403, 404, 405, 500]),
-        random.randint(1, 1024)
-    ))
-    sys.stdout.flush()
+def printStatus(dic, size):
+    """ Prints information """
+    print("File size: {:d}".format(size))
+    for i in sorted(dic.keys()):
+        if dic[i] != 0:
+            print("{}: {:d}".format(i, dic[i]))
+
+
+# sourcery skip: use-contextlib-suppress
+statusCodes = {"200": 0, "301": 0, "400": 0, "401": 0, "403": 0,
+               "404": 0, "405": 0, "500": 0}
+
+count = 0
+size = 0
+
+try:
+    for line in sys.stdin:
+        if count != 0 and count % 10 == 0:
+            printStatus(statusCodes, size)
+
+        stlist = line.split()
+        count += 1
+
+        try:
+            size += int(stlist[-1])
+        except Exception:
+            pass
+
+        try:
+            if stlist[-2] in statusCodes:
+                statusCodes[stlist[-2]] += 1
+        except Exception:
+            pass
+    printStatus(statusCodes, size)
+
+
+except KeyboardInterrupt:
+    printStatus(statusCodes, size)
+    raise
